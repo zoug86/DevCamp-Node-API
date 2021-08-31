@@ -1,4 +1,6 @@
 // Creating a Mongoose Model:  Note: the name of the file 'by convetion' has to be uppercase and single (Bootcamp.js)
+const slugify = require('slugify')
+const geocoder = require('../utils/geocoder')
 
 // Step 1: requiring mongoose
 const mongoose = require('mongoose');
@@ -18,6 +20,10 @@ const BootcampSchema = new mongoose.Schema({
         required: [true, 'Please add a description'],
         maxlength: [500, 'Name ca not be more than 500 characters']
     },
+    address: {
+        type: String,
+        required: [true, 'Please add an address']
+    },
     location: {
         type: {
             type: String,
@@ -31,8 +37,9 @@ const BootcampSchema = new mongoose.Schema({
         formattedAddress: String,
         street: String,
         city: String,
-        zipCode: String,
-        country: String,
+        stateCode: String,
+        zipcode: String,
+        countryCode: String,
     },
     website: {
         type: String,
@@ -99,8 +106,34 @@ const BootcampSchema = new mongoose.Schema({
     timestamps: true
 });
 
-//Step 3: export the Schema object
+//Step 3: Model middleware
+// a- Create bootcamp slug from the name
 
-const Bootcamp = mongoose.model('Bootcamp', BootcampSchema)
+BootcampSchema.pre('save', function (next) {
+    this.slug = slugify(this.name, { lower: true });
+    //console.log(this.slug);
+    next();
+});
+
+// b- Geocode & create location field
+
+BootcampSchema.pre('save', async function (next) {
+    const res = await geocoder.geocode(this.address);
+    //console.log(res[0])
+    this.location = {
+        type: 'Point',
+        coordinates: [res[0].longitude, res[0].latitude],
+        ...res[0]
+    }
+
+    // Do not save address in DB
+    this.address = undefined;
+    next();
+});
+
+
+//Step 4: export the Schema object
+
+const Bootcamp = mongoose.model('Bootcamp', BootcampSchema, "bootcamps"); // the third argument specifies the collection name (or creates one if does not exist)
 
 module.exports = Bootcamp;
