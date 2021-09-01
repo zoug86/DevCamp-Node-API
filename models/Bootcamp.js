@@ -103,7 +103,9 @@ const BootcampSchema = new mongoose.Schema({
     //   default: Date.now
     // },
 }, {
-    timestamps: true
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtual: true }
 });
 
 //Step 3: Model middleware
@@ -130,6 +132,15 @@ BootcampSchema.pre('save', async function (next) {
     this.address = undefined;
     next();
 });
+
+// Reverse populate with virtuals
+// Add virtuals (virtual fields)
+BootcampSchema.virtual('courses', {
+    ref: 'Course',
+    localField: '_id',
+    foreignField: 'bootcamp',
+    justOne: false
+})
 
 
 //Step 4: export the Schema object

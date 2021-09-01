@@ -1,67 +1,23 @@
-const Bootcamp = require('../models/Bootcamp');
+const Course = require('../models/Course');
 const ErrorResponse = require('../utils/errorResponse');
 const asyncHandler = require('../middleware/asyncHandler');
-const geocoder = require('../utils/geocoder');
 
-// @desc    Fetch all bootcamps
-// @route   GET  /api/v1/bootcamps
+// @desc    Fetch all courses
+// @route   GET  /api/v1/courses
+// @route   GET  /api/v1/bootcamps/:bootcampId/courses
 // @access  Public
 
-exports.getBootcamps = asyncHandler(async (req, res, next) => {
+exports.getCourses = asyncHandler(async (req, res, next) => {
     let query;
-    let reqQuery = { ...req.query };
-
-    // Fields to exclude
-    let removedFields = ['select', 'sort', 'page', 'limit'];
-
-    // Delete the fields from reqQuery
-    removedFields.forEach(param => delete reqQuery[param]);
-
-    let queryStr = JSON.stringify(reqQuery);
-    queryStr = queryStr.replace(/\b(gt|gte|lt|lte|in)\b/g, match => `$${match}`);
-    query = Bootcamp.find(JSON.parse(queryStr)).populate('courses', 'title');
-
-    if (req.query.select) {
-        const fields = req.query.select.split(',').join(' ');
-        query = query.select(fields);
-    }
-
-    // sorting
-    if (req.query.sort) {
-        const sortBy = req.query.sort.split(',').join(' ');
-        query = query.sort(sortBy);
+    if (req.params.bootcampId) {
+        query = Course.find({ bootcamp: req.params.bootcampId });
     } else {
-        query = query.sort('-createdAt');
+        query = Course.find().populate('bootcamp', 'name description');
     }
 
-    // Pagination
-    const page = parseInt(req.query.page, 10) || 1;
-    const limit = parseInt(req.query.limit, 10) || 25;
-    const startIndex = (page - 1) * limit;
-    const endIndex = page * limit;
-    const total = await Bootcamp.countDocuments();
-    //console.log(page, limit, startIndex)
+    const courses = await query;
 
-    query = query.skip(startIndex).limit(limit);
-
-    const allBootcamps = await query;
-
-    // pagination result
-    const pagination = {};
-    if (endIndex < total) {
-        pagination.next = {
-            page: page + 1,
-            limit
-        }
-    }
-
-    if (startIndex > 0) {
-        pagination.prev = {
-            page: page - 1,
-            limit
-        }
-    }
-    res.status(200).json({ success: true, count: allBootcamps.length, pagination, data: allBootcamps });
+    res.status(200).json({ success: true, count: courses.length, data: courses });
 })
 
 // @desc    Fetch single bootcamp
