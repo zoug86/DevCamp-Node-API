@@ -1,4 +1,5 @@
 const Course = require('../models/Course');
+const Bootcamp = require('../models/Bootcamp');
 const ErrorResponse = require('../utils/errorResponse');
 const asyncHandler = require('../middleware/asyncHandler');
 
@@ -8,61 +9,68 @@ const asyncHandler = require('../middleware/asyncHandler');
 // @access  Public
 
 exports.getCourses = asyncHandler(async (req, res, next) => {
-    let query;
     if (req.params.bootcampId) {
-        query = Course.find({ bootcamp: req.params.bootcampId });
+        const courses = Course.find({ bootcamp: req.params.bootcampId });
+        res.status(200).json({ success: true, count: courses.length, data: courses });
+
     } else {
-        query = Course.find().populate('bootcamp', 'name description');
+        res.status(200).json(res.advancedResults);
     }
-
-    const courses = await query;
-
-    res.status(200).json({ success: true, count: courses.length, data: courses });
 })
 
-// @desc    Fetch single bootcamp
-// @route   GET  /api/v1/bootcamps/:id
+// @desc    Fetch single course
+// @route   GET  /api/v1/courses/:id
 // @access  Public
 
-exports.getBootcamp = asyncHandler(async (req, res, next) => {
-    const bootcamp = await Bootcamp.findById(req.params.id);
+exports.getCourse = asyncHandler(async (req, res, next) => {
+    const course = await Course.findById(req.params.id).populate('bootcamp', 'name description');
+    if (!course) {
+        return next(new ErrorResponse(`Course not found with id of ${req.params.id}`, 404));
+    }
+    res.status(200).json({ success: true, data: course });
+})
+
+// @desc    Add new Course
+// @route   POST  /api/v1/bootcamps/:bootcampId/courses
+// @access  Private
+
+exports.addCourse = asyncHandler(async (req, res, next) => {
+    req.body.bootcamp = req.params.bootcampId;
+    const bootcamp = await Bootcamp.findById(req.params.bootcampId);
     if (!bootcamp) {
-        return next(new ErrorResponse(`Bootcamp not found with id of ${req.params.id}`, 404));
+        return next(new ErrorResponse(`Bootcamp not found with id of ${req.params.bootcampId}`, 404))
     }
-    res.status(200).json({ success: true, data: bootcamp });
+    const addedCourse = await Course.create(req.body);
+    res.status(201).json({ success: true, data: addedCourse });
 })
 
-// @desc    Create new bootcamp
-// @route   POST  /api/v1/bootcamps
+// @desc    Update course
+// @route   PUT  /api/v1/courses/:id
 // @access  Private
 
-exports.createBootcamp = asyncHandler(async (req, res, next) => {
-    const createdBootcamp = await Bootcamp.create(req.body);
-    res.status(201).json({ success: true, data: createdBootcamp });
+exports.updateCourse = asyncHandler(async (req, res, next) => {
+    let UpdatedCourse = await Course.findById(req.params.id);
+    if (!UpdatedCourse) {
+        return next(new ErrorResponse(`Course not found with id of ${req.params.id}`, 404));
+    }
+    UpdatedCourse = await Course.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
+    //UpdatedCourse.save();
+    res.status(200).json({ success: true, data: UpdatedCourse })
 })
 
-// @desc    Update bootcamp
-// @route   PUT  /api/v1/bootcamps/:id
+// @desc    Delete course
+// @route   DELETE  /api/v1/courses/:id
 // @access  Private
 
-exports.updateBootcamp = asyncHandler(async (req, res, next) => {
-    const UpdatedBootcamp = await Bootcamp.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
-    if (!UpdatedBootcamp) {
-        return next(new ErrorResponse(`Bootcamp not found with id of ${req.params.id}`, 404));
+exports.deleteCourse = asyncHandler(async (req, res, next) => {
+    const deletedCourse = await Course.findById(req.params.id);
+    if (!deletedCourse) {
+        return next(new ErrorResponse(`Course not found with id of ${req.params.id}`, 404));
     }
-    res.status(200).json({ success: true, data: UpdatedBootcamp })
-})
 
-// @desc    Delete bootcamp
-// @route   DELETE  /api/v1/bootcamps/:id
-// @access  Private
+    await deletedCourse.remove();
 
-exports.deleteBootcamp = asyncHandler(async (req, res, next) => {
-    const deletedBootcamp = await Bootcamp.findByIdAndRemove(req.params.id);
-    if (!deletedBootcamp) {
-        return next(new ErrorResponse(`Bootcamp not found with id of ${req.params.id}`, 404));
-    }
-    res.status(200).json({ success: true, data: deletedBootcamp });
+    res.status(200).json({ success: true, data: deletedCourse });
 })
 
 // @desc    Get bootcamp within a radius

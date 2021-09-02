@@ -4,7 +4,9 @@ const app = express();
 const morgan = require('morgan') // this is a 3rd party middleware used to log user api calls
 const connectDB = require('./config/db')
 const colors = require('colors');
-const errorHandler = require('./middleware/errorHandler')
+const errorHandler = require('./middleware/errorHandler');
+const fileupload = require('express-fileupload');
+const path = require('path');
 
 // Load env variables
 dotenv.config({ path: './config/config.env' })
@@ -23,6 +25,12 @@ const courses = require('./routes/courses');
 if (process.env.NODE_ENV === 'development') {
     app.use(morgan('dev'))
 }
+
+// Files upload middleware
+app.use(fileupload());
+
+// Setting static folder middleware
+app.use(express.static(path.join(__dirname, 'public'))); //Serves resources from public folder
 
 // Mount routers
 app.use('/api/v1/bootcamps', bootcamps);
