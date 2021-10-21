@@ -1,6 +1,6 @@
 # DevCamper API
 
-> Backend API for DecXCamper applicaiton, which is a bootcamp directory website
+> Backend API for DevCamper applicaiton, which is a bootcamp directory website
 
 ## Usage
 
